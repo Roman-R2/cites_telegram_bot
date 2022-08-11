@@ -13,3 +13,4 @@ venv/
 
 ### Other app files ###
 data/
+.env

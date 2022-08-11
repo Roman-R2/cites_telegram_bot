@@ -5,18 +5,25 @@ from app import settings
 
 class DBDriver:
     def __init__(self):
+        self.__id_field = 'id'
+        self.__cite_table_name = 'cites'
+        self.__cite_text_field = 'cite'
+        self.__counter_field = 'show_counter'
+        self.__owner_field = 'owner'
+
         self.__connection = sqlite3.connect(settings.SQLITE3_DATABASE_FILE)
         self.__cursor = self.__connection.cursor()
 
     def __first_start(self):
         # Создадим таблицу для хранения цитат
         try:
-            query = '''
-                CREATE TABLE cites
+            query = f'''
+                CREATE TABLE {self.__cite_table_name}
                     (
-                        cite text, 
-                        show_counter integer,
-                        owner text
+                        {self.__id_field} INTEGER PRIMARY KEY,
+                        {self.__cite_text_field} TEXT,
+                        {self.__owner_field} TEXT,
+                        {self.__counter_field} INTEGER
                     )
                 '''
             self.__cursor.execute(query)
@@ -31,7 +38,9 @@ class DBDriver:
                   f'{type(cite_text)}')
             return False
 
-        query = f"INSERT INTO cites VALUES ('{cite_text}', 0, '{cite_owner}')"
+        query = f"INSERT INTO {self.__cite_table_name} (" \
+                f"{self.__cite_text_field}, {self.__counter_field}, " \
+                f"{self.__owner_field}) VALUES ('{cite_text}', 0, '{cite_owner}')"
         try:
             self.__cursor.execute(query)
         except:
@@ -46,6 +55,28 @@ class DBDriver:
     def close_connection(self):
         self.__connection.close()
 
+    def get_random_cite(self):
+        """ Вернет случайную цитату из БД и увеличит поле показа цитаты
+        на 1 """
+        query = f"SELECT id, MIN({self.__counter_field})" \
+                f", {self.__cite_text_field}, {self.__owner_field} FROM" \
+                f" {self.__cite_table_name} ORDER BY RANDOM() LIMIT 1 "
+        query_result = self.__cursor.execute(query).fetchone()
+
+        this_field_id = query_result[0]
+        this_field_counter = int(query_result[1])
+
+        increment_query = f"""
+            UPDATE {self.__cite_table_name}
+            SET {self.__counter_field} = {this_field_counter + 1}
+            WHERE {self.__id_field} = {this_field_id}
+        """
+
+        self.__cursor.execute(increment_query)
+        self.__connection.commit()
+
+        return query_result
+
     @property
     def get_cursor(self):
         return self.__cursor
@@ -53,6 +84,12 @@ class DBDriver:
     @property
     def get_connection(self):
         return self.__connection
+
+
+class ErrorLogger:
+
+    def __init__(self):
+        pass
 
 
 if __name__ == '__main__':
