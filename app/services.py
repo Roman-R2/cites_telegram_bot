@@ -1,4 +1,8 @@
+import os
 import sqlite3
+import datetime
+
+from dotenv import load_dotenv
 
 from app import settings
 
@@ -30,7 +34,8 @@ class DBDriver:
             self.__connection.commit()
         except sqlite3.OperationalError:
             print('sqlite3.OperationalError')
-            pass
+            ErrorLogger.write_error('sqlite3.OperationalError. Ошибка базы '
+                                    'данных.')
 
     def new_cite_to_db(self, cite_text: str, cite_owner: str):
         if not isinstance(cite_text, str):
@@ -58,10 +63,20 @@ class DBDriver:
     def get_random_cite(self):
         """ Вернет случайную цитату из БД и увеличит поле показа цитаты
         на 1 """
-        query = f"SELECT id, MIN({self.__counter_field})" \
-                f", {self.__cite_text_field}, {self.__owner_field} FROM" \
-                f" {self.__cite_table_name} ORDER BY RANDOM() LIMIT 1 "
+        query = f"SELECT {self.__id_field}" \
+                f", {self.__counter_field}" \
+                f", {self.__cite_text_field}" \
+                f", {self.__owner_field} " \
+                f"FROM" \
+                f" {self.__cite_table_name} " \
+                f"WHERE {self.__counter_field} = (" \
+                f"  SELECT MIN({self.__counter_field}) " \
+                f"  FROM {self.__cite_table_name})" \
+                f"ORDER BY RANDOM() " \
+                f"LIMIT 1 "
         query_result = self.__cursor.execute(query).fetchone()
+
+        # print(f'{query_result=}')
 
         this_field_id = query_result[0]
         this_field_counter = int(query_result[1])
@@ -89,8 +104,17 @@ class DBDriver:
 class ErrorLogger:
 
     def __init__(self):
-        pass
+        load_dotenv(os.path.join(settings.BASE_DIR, '.env'))
+        self.error_file = os.path.join(
+            settings.BASE_DIR,
+            os.getenv('TXT_FILE_FOR_ERRORS')
+        )
+
+    def write_error(self, error_text: str):
+        with open(self.error_file, mode='a', encoding='utf-8') as fd:
+            fd.write(str(datetime.datetime.now()) + ' ' + error_text + '\n')
 
 
 if __name__ == '__main__':
     print("Это сервисный файл, из него нужно подключить классы")
+    DBDriver().get_random_cite()

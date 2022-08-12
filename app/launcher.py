@@ -1,38 +1,23 @@
-import os
+import datetime
 
-import telebot
-from dotenv import load_dotenv
+import schedule
+import time
 
-from app import settings
-from app.services import DBDriver
-
-
-class TelegramBot:
-    def __init__(self):
-        self.bot = telebot.TeleBot(TELEGRAM_TOKEN)
-
-    def send_message_to_channel(self, message: str):
-        self.bot.send_message(CHAT_ID, message)
-        self.pooling()
-
-    def pooling(self):
-        self.bot.polling(none_stop=True, interval=0)
-
+from app.main import InitBot
 
 if __name__ == '__main__':
-    load_dotenv(os.path.join(settings.BASE_DIR, '.env'))
 
-    TELEGRAM_TOKEN = os.getenv('TELEGRAM_TOKEN')
-    CHAT_ID = os.getenv('CHAT_ID')
+    def job():
+        InitBot.start()
 
-    db_driver = DBDriver()
 
-    random_cite = db_driver.get_random_cite()
+    # schedule.every().minute.do(InitBot.start())
+    # schedule.every(1).days.do(job)
+    schedule.every().day.at("10:00").do(job)
 
-    cite_string = f""" {random_cite[2]}\n-----------------\n{random_cite[3]}"""
+    print(f'Запустили задачу {schedule.jobs}')
 
-    if cite_string:
-        TelegramBot().send_message_to_channel(cite_string)
-        print('Цитата отправлена...')
-    else:
-        print('Логируем ошибку...')
+    while True:
+        schedule.run_pending()
+        print(datetime.datetime.now(), schedule.jobs)
+        time.sleep(1)
