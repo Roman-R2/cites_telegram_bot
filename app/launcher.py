@@ -1,11 +1,16 @@
 import datetime
+import locale
+import os
 
+import pytz as pytz
 import schedule
 import time
 
 from app.main import InitBot
 
 if __name__ == '__main__':
+
+    locale.setlocale(locale.LC_ALL, "Russian_Russia.1251")
 
     def job():
         InitBot.start()
