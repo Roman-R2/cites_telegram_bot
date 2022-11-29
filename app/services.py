@@ -1,10 +1,9 @@
-import os
 import sqlite3
-import datetime
 
-from dotenv import load_dotenv
+from app.logger.logger import GetLogger
+from app.settings import settings
 
-from app import settings
+EVENT_LOGGER = GetLogger(logger_name='event_logger').get_logger()
 
 
 class DBDriver:
@@ -34,8 +33,9 @@ class DBDriver:
             self.__connection.commit()
         except sqlite3.OperationalError:
             print('sqlite3.OperationalError')
-            ErrorLogger.write_error('sqlite3.OperationalError. Ошибка базы '
-                                    'данных.')
+            EVENT_LOGGER.error(
+                'sqlite3.OperationalError. Ошибка базы данных.'
+            )
 
     def new_cite_to_db(self, cite_text: str, cite_owner: str):
         if not isinstance(cite_text, str):
@@ -99,20 +99,6 @@ class DBDriver:
     @property
     def get_connection(self):
         return self.__connection
-
-
-class ErrorLogger:
-
-    def __init__(self):
-        load_dotenv(os.path.join(settings.BASE_DIR, '.env'))
-        self.error_file = os.path.join(
-            settings.BASE_DIR,
-            os.getenv('TXT_FILE_FOR_ERRORS')
-        )
-
-    def write_error(self, error_text: str):
-        with open(self.error_file, mode='a', encoding='utf-8') as fd:
-            fd.write(str(datetime.datetime.now()) + ' ' + error_text + '\n')
 
 
 if __name__ == '__main__':
